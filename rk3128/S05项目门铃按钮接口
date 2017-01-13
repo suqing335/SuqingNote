@@ -1,0 +1,93 @@
+关键代码:
+注册一个输入设备：
+        struct input_dev *input_dev = input_allocate_device();   //分配一个输入设备   
+        if (!input_dev) {    
+              
+                 printk(KERN_ERR" Not enough memory\n");    
+                 error = -ENOMEM;    
+                 goto err_free_dev;    
+        }    
+  
+        input_dev->name ="DoorCallKey";
+        __set_bit(EV_KEY, input_dev->evbit);//注册设备支持的事件类型  
+        __set_bit(KEY_RIGHT, input_dev->keybit); //注册设备支持的按键  
+        __set_bit(KEY_LEFT, input_dev->keybit);
+	
+        error = input_register_device(input_dev);  //注册输入设备  
+        if (error) {   
+              
+                 printk(KERN_ERR" Failed to register device\n");    
+                 goto err_free_dev;    
+        }
+
+上报键值：
+
+input_report_key(rk3036_tve->input_dev, KEY_LEFT, 1); //按键被按下 "1"
+input_sync(rk3036_tve->input_dev); //report到用户空间
+msleep(50);
+input_report_key(rk3036_tve->input_dev, KEY_LEFT, 0);
+input_sync(rk3036_tve->input_dev);
+input_report_key(rk3036_tve->input_dev, KEY_RIGHT, 1); //按键被按下 "1"
+input_sync(rk3036_tve->input_dev); //report到用户空间 
+msleep(50);
+input_report_key(rk3036_tve->input_dev, KEY_RIGHT, 0); 
+input_sync(rk3036_tve->input_dev);
+
+在上层去拦截按键发广播
+frameworks/base/policy/src/com/android/internal/policy/impl/PhoneWindowManager.java
+
+    	} else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {/**add by cfj***/
+		/******door call start******/ 
+		if (down) {
+			Intent intent = new Intent();
+			intent.setAction("android.intent.action.DOORBELL");                               
+			intent.putExtra("status", "START"); 
+			mContext.sendBroadcast(intent);
+		}
+		//Log.d(TAG, "android.intent.action.DOORBELL START");
+		return 0;
+	} else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+		/******door call end******/
+		if (down) {
+			Intent intent = new Intent();
+			intent.setAction("android.intent.action.DOORBELL");                               
+			intent.putExtra("status", "END"); 
+			mContext.sendBroadcast(intent);
+		}
+		//Log.d(TAG, "android.intent.action.DOORBELL END");
+		return 0;
+	}
+
+
+apk接收广播:
+静态注册广播方式：
+AndroidManifest.xml
+<receiver android:name=".DoorBellBroadcastReceiver">
+            <intent-filter>
+               <action android:name="android.intent.action.DOORBELL"/>
+            </intent-filter>
+ </receiver>
+
+新建一个DoorBellBroadcastReceiver.java文件，内容如下：
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
+import android.widget.Toast;
+public class DoorBellBroadcastReceiver extends BroadcastReceiver{
+	private static final String TAG = "DoorBellBroadcastReceiver";
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		// TODO 自动生成的方法存根
+		String msg = intent.getStringExtra("status");
+		if (msg.equals("START")) {
+			Toast.makeText(context, "doorbell start", Toast.LENGTH_SHORT).show();
+			Log.d(TAG, "-----------doorbell start------------");
+		} else if (msg.equals("END")) {
+			Toast.makeText(context, "doorbell end", Toast.LENGTH_SHORT).show();
+			Log.d(TAG, "-----------doorbell end------------");
+		}
+	}
+}
+
