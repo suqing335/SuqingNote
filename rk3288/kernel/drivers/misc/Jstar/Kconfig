@@ -1,0 +1,29 @@
+
+menuconfig JSTAR_CUSTOM
+	bool "Jstar custom driver"
+	help
+	  Say Y here, and a list of supported touchscreens will be displayed.
+	  This option doesn't affect the kernel.
+
+	  If unsure, say Y.
+
+if JSTAR_CUSTOM
+
+config SND_SOC_ZL380TW
+	bool "SND_SOC_ZL380TW device driver"
+	default y
+	help
+	   These devices are standard parts of a Linux system and most
+	   users should say Y here. You might say N if very security 
+           conscience or memory is tight.
+	   
+config KEYBOARD_SN7326
+	bool "KEYBOARD_SN7326 device driver"
+	default y
+	help
+	   These devices are standard parts of a Linux system and most
+	   users should say Y here. You might say N if very security 
+           conscience or memory is tight.
+
+endif
+

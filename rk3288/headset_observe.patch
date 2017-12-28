@@ -1,0 +1,269 @@
+diff --git a/drivers/headset_observe/rk_headset.c b/drivers/headset_observe/rk_headset.c
+index e6b6a28..b33a6362 100755
+--- a/drivers/headset_observe/rk_headset.c
++++ b/drivers/headset_observe/rk_headset.c
+@@ -170,7 +170,9 @@ static void headsetobserve_work(struct work_struct *work)
+ 		DBG("old_status == headset_info->headset_status\n");
+ 		goto out;
+ 	}
+-	
++#ifdef MISC_AND_SPEAK_CONTROL
++	pdata->headset_status = headset_info->headset_status;
++#endif
+ 	DBG("(headset in is %s)headset status is %s\n",
+ 		pdata->headset_insert_type?"high level":"low level",
+ 		headset_info->headset_status?"in":"out");
+diff --git a/drivers/headset_observe/rk_headset.h b/drivers/headset_observe/rk_headset.h
+index 87ee42d..08e9539 100755
+--- a/drivers/headset_observe/rk_headset.h
++++ b/drivers/headset_observe/rk_headset.h
+@@ -7,13 +7,35 @@
+ #define HOOK_DOWN_HIGH 0x00000001
+ #define HOOK_DOWN_LOW  0x00000000
+ 
++#define MISC_AND_SPEAK_CONTROL
++#ifdef MISC_AND_SPEAK_CONTROL
++#include <linux/miscdevice.h>
++#define SPEAK_CTL_HIGH  0X00000001
++#define SPEAK_CTL_LOW   0X00000000
++#define HEADSET_CTL_HIGH  0X00000001
++#define HEADSET_CTL_LOW   0X00000000
++#define MISC_SPEAK_NAME  "spkconctrol"
++#endif
+ struct rk_headset_pdata{
+ //heaset about
+ 	unsigned int headset_gpio;
+ 	unsigned int headset_insert_type;//	Headphones into the state level
+ //hook about
+ 	unsigned int hook_gpio;
+-	unsigned int hook_down_type; //Hook key down status  
++	unsigned int hook_down_type; //Hook key down status
++#ifdef 	MISC_AND_SPEAK_CONTROL
++//headet control
++	unsigned int hp_ctl_gpio;
++	unsigned int hp_ctl_type;
++//speak control
++	unsigned int spk_ctl_gpio;
++	unsigned int spk_ctl_type;
++//headet detect
++	unsigned int headset_status;
++	struct device		*dev;
++	struct miscdevice 	miscdev;
++	struct file_operations 	fops;
++#endif	
+ #ifdef CONFIG_MODEM_MIC_SWITCH
+ //mic about	
+ 	unsigned int mic_switch_gpio;
+diff --git a/drivers/headset_observe/rockchip_headset_core.c b/drivers/headset_observe/rockchip_headset_core.c
+index 01b7b4e..6b1252e 100755
+--- a/drivers/headset_observe/rockchip_headset_core.c
++++ b/drivers/headset_observe/rockchip_headset_core.c
+@@ -36,6 +36,94 @@
+ 
+ struct rk_headset_pdata *pdata_info;
+ 
++#ifdef MISC_AND_SPEAK_CONTROL
++static ssize_t attr_spkctl_show(struct device *dev, struct device_attribute *attr, char *buf)
++{	
++	return sprintf(buf, "%u\n", pdata_info->spk_ctl_type);
++}
++
++static ssize_t attr_spkctl_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
++{
++	unsigned long val;
++	if (strict_strtoul(buf, 10, &val))
++		return -EINVAL;
++	
++	if(!!val != pdata_info->spk_ctl_type) {
++		pdata_info->spk_ctl_type = !!val;
++		gpio_set_value(pdata_info->spk_ctl_gpio, pdata_info->spk_ctl_type);
++	}
++	return size;
++}
++static DEVICE_ATTR(spkctl, 0666, attr_spkctl_show, attr_spkctl_store);
++
++/*******************************************************************************/
++static ssize_t attr_hpdet_show(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%u\n", pdata_info->headset_status);
++}
++
++static ssize_t attr_hpdet_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
++{
++	/**buzz io --> high is enabled**/
++	unsigned long val;
++	if (strict_strtoul(buf, 10, &val))
++		return -EINVAL;
++	return size;
++}
++static DEVICE_ATTR(hpdet, 0666, attr_hpdet_show, attr_hpdet_store);
++/*******************************************************************************/
++static ssize_t attr_hpctl_show(struct device *dev, struct device_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%u\n", pdata_info->hp_ctl_type);
++}
++
++static ssize_t attr_hpctl_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
++{
++	/**buzz io --> high is enabled**/
++	unsigned long val;
++	if (strict_strtoul(buf, 10, &val))
++		return -EINVAL;
++	if(!!val != pdata_info->hp_ctl_type) {
++		pdata_info->hp_ctl_type = !!val;
++		gpio_set_value(pdata_info->hp_ctl_gpio, pdata_info->hp_ctl_type);
++	}
++	return size;
++}
++static DEVICE_ATTR(hpctl, 0666, attr_hpctl_show, attr_hpctl_store);
++
++static int spk_dev_open(struct inode *inode, struct file *file) {
++	return 0;
++}
++static int spk_dev_release(struct inode *inode, struct file *file) {
++	return 0;
++}
++static long spk_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
++
++	return 0;
++}
++
++static int misc_device_register(struct rk_headset_pdata *data) {
++	int ret;
++	data->fops.owner = THIS_MODULE;
++	data->fops.unlocked_ioctl = spk_dev_ioctl;
++	data->fops.open = spk_dev_open;
++	data->fops.release = spk_dev_release;
++
++	data->miscdev.minor = MISC_DYNAMIC_MINOR;
++	data->miscdev.name = MISC_SPEAK_NAME;
++	data->miscdev.fops = &data->fops;
++				
++	data->miscdev.parent = data->dev;
++	/**注册到杂设备类中*/
++	ret = misc_register(&data->miscdev);
++	if (ret < 0) {
++		printk("fail to register misc device %s\n", data->miscdev.name);
++		return ret;
++	}
++	printk("%s:miscdevice: %s\n",__func__, data->miscdev.name);	
++	return ret;
++}
++#endif
+ static int rockchip_headset_probe(struct platform_device *pdev)
+ {
+ 	struct device_node *node = pdev->dev.of_node;
+@@ -85,6 +173,7 @@ static int rockchip_headset_probe(struct platform_device *pdev)
+ 			pdata->chan = NULL;
+ 			printk("%s() have not set adc chan\n", __FUNCTION__);
+ 		}
++		pdata->chan = NULL;
+ 	} else {
+ 		ret = of_property_read_u32(node, "hook_down_type", &pdata->hook_down_type);
+ 		if (ret < 0) {
+@@ -102,7 +191,49 @@ static int rockchip_headset_probe(struct platform_device *pdev)
+ 			goto err;
+ 		}
+ 	}
+-
++	#ifdef MISC_AND_SPEAK_CONTROL
++	//speak
++	ret = of_get_named_gpio_flags(node, "spk_ctl_gpio", 0, &flags);
++	if (ret < 0) {
++		printk("%s() Can not read property spk_ctl_gpio\n", __FUNCTION__);
++		goto err;
++	} else {
++		pdata->spk_ctl_gpio = ret;
++		ret = devm_gpio_request(&pdev->dev, pdata->spk_ctl_gpio, "spk_ctl_gpio");
++		if(ret < 0){
++			printk("%s() devm_gpio_request spk_ctl_gpio request ERROR\n", __FUNCTION__);
++			goto err;
++		}
++		pdata->spk_ctl_type = !((flags & OF_GPIO_ACTIVE_LOW) ? SPEAK_CTL_LOW : SPEAK_CTL_HIGH);
++		
++		ret = gpio_direction_output(pdata->spk_ctl_gpio, pdata->spk_ctl_type); 
++		if(ret < 0){
++			printk("%s() gpio_direction_output spk_ctl_gpio set ERROR\n", __FUNCTION__);
++			goto err;
++		}
++	}
++	//hp
++	ret = of_get_named_gpio_flags(node, "hp_ctl_gpio", 0, &flags);
++	if (ret < 0) {
++		printk("%s() Can not read property hp_ctl_gpio\n", __FUNCTION__);
++		goto err;
++	} else {
++		pdata->hp_ctl_gpio = ret;
++		ret = devm_gpio_request(&pdev->dev, pdata->hp_ctl_gpio, "hp_ctl_gpio");
++		if(ret < 0){
++			printk("%s() devm_gpio_request hp_ctl_gpio request ERROR\n", __FUNCTION__);
++			goto err;
++		}
++		pdata->hp_ctl_type = !((flags & OF_GPIO_ACTIVE_LOW) ? HEADSET_CTL_LOW : HEADSET_CTL_HIGH);
++		
++		ret = gpio_direction_output(pdata->hp_ctl_gpio, pdata->hp_ctl_type); 
++		if(ret < 0){
++			printk("%s() gpio_direction_output spk_ctl_gpio set ERROR\n", __FUNCTION__);
++			goto err;
++		}
++	}
++	#endif
++	
+ 	#ifdef CONFIG_MODEM_MIC_SWITCH
+ 	//mic
+ 	ret = of_get_named_gpio_flags(node, "mic_switch_gpio", 0, &flags);
+@@ -146,8 +277,40 @@ static int rockchip_headset_probe(struct platform_device *pdev)
+ 			goto err;
+ 		}
+ 	}
+-
++	
++	#ifdef MISC_AND_SPEAK_CONTROL
++	pdata->dev = &pdev->dev;
++	ret = misc_device_register(pdata);
++	if(ret < 0) {
++		goto err;
++	}
++	ret = device_create_file(pdata->miscdev.this_device, &dev_attr_spkctl);
++	if(ret) {
++		printk("device_create_file spkctl err:%d\n", ret);
++		goto dev_file_err;
++	}
++	ret = device_create_file(pdata->miscdev.this_device, &dev_attr_hpdet);
++	if(ret) {
++		printk("device_create_file hpdet err:%d\n", ret);
++		goto dev_file_err1;
++	}
++	ret = device_create_file(pdata->miscdev.this_device, &dev_attr_hpctl);
++	if(ret) {
++		printk("device_create_file hpctl err:%d\n", ret);
++		goto dev_file_err2;
++	}
++	printk("%s ---success---\n",__FUNCTION__);
++	#endif
++	
+ 	return 0;
++#ifdef MISC_AND_SPEAK_CONTROL
++dev_file_err2:
++	device_remove_file(pdata->miscdev.this_device, &dev_attr_hpdet);
++dev_file_err1:
++	device_remove_file(pdata->miscdev.this_device, &dev_attr_spkctl);
++dev_file_err:
++	misc_deregister(&pdata->miscdev);
++#endif 	
+ err:
+ 	kfree(pdata);
+ 	return ret;
+@@ -155,6 +318,12 @@ err:
+ 
+ static int rockchip_headset_remove(struct platform_device *pdev)
+ {
++#ifdef 	MISC_AND_SPEAK_CONTROL
++	device_remove_file(pdata_info->miscdev.this_device, &dev_attr_hpctl);
++	device_remove_file(pdata_info->miscdev.this_device, &dev_attr_hpdet);
++	device_remove_file(pdata_info->miscdev.this_device, &dev_attr_spkctl);
++	misc_deregister(&pdata_info->miscdev);	
++#endif
+ 	if(pdata_info)
+ 		kfree(pdata_info);
+ 	return 0;
