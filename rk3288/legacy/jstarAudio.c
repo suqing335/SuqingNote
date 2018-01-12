@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -19,13 +20,17 @@
 #define ZL380TW_PATH	"/dev/zl380tw"
 #define ARRAY_LEN	(1024)
 
+#define msleep(x) 	usleep(x*1000)
+
 char w_value[4] = {0};
 unsigned int spk_status = 0;
 unsigned int hp_status = 0;
+unsigned int mic_status = 0;
 unsigned int spk_status_old = 0;
 unsigned int hp_status_old = 0;
+unsigned int mic_status_old = 0;
 unsigned short (*dsp_config_current)[2] = base_config_array;
-unsigned short (*dsp_config_old)[2] = NULL;
+unsigned short (*dsp_config_old)[2] = base_config_array;
 
 unsigned short dsp_reset_array[2] = {0x0006, 0x0002};
 /***
@@ -108,9 +113,10 @@ static int audio_write_config_array(const unsigned short (*config_array)[2], int
 	return 0;
 }
 
-int set_config_on_route(unsigned int route) {
+static int set_config_on_route(unsigned int route) {
 	int length;
 	int status;
+	ALOGE("%s, route : %d\n", __func__, route);
 	switch(route) {
 	case SPEAKER_NORMAL_ROUTE:
 	case HEADPHONE_NORMAL_ROUTE:
@@ -172,6 +178,7 @@ int set_config_on_route(unsigned int route) {
 		//ALOGD("SPEAKER_RINGTONE_ROUTE config end\n");
 		break;
 	case MAIN_MIC_CAPTURE_ROUTE:
+	case HANDS_FREE_MIC_CAPTURE_ROUTE:
 		//ALOGD("MAIN_MIC_CAPTURE_ROUTE config start\n");
 		if (dsp_config_current != main_mic_config_array){
 			dsp_config_old = (dsp_config_current != speak_off_config_array) ?
@@ -194,12 +201,21 @@ int set_config_on_route(unsigned int route) {
 		break;
 	case PLAYBACK_OFF_ROUTE:
 		//ALOGD("PLAYBACK_OFF_ROUTE config start\n");
-		if (dsp_config_current != speak_off_config_array){
-			dsp_config_old = (dsp_config_current != speak_off_config_array) ?
+		
+		if (dsp_config_current != speak_off_config_array) {
+			if(dsp_config_current == main_mic_config_array){
+				/*dsp_config_old = (dsp_config_current != speak_off_config_array) ?
+							dsp_config_current : dsp_config_old;
+				dsp_config_current = main_mic_config_array;*/
+				length = sizeof(main_mic_config_array)/sizeof(main_mic_config_array[0]);
+				status = audio_write_config_array(dsp_config_current, length);
+			} else {
+				dsp_config_old = (dsp_config_current != speak_off_config_array) ?
 						dsp_config_current : dsp_config_old;
-			dsp_config_current = speak_off_config_array;
-			length = sizeof(speak_off_config_array)/sizeof(speak_off_config_array[0]);
-			status = audio_write_config_array(dsp_config_current, length);
+				dsp_config_current = speak_off_config_array;
+				length = sizeof(speak_off_config_array)/sizeof(speak_off_config_array[0]);
+				status = audio_write_config_array(dsp_config_current, length);
+			}
 		}
 		//ALOGD("PLAYBACK_OFF_ROUTE config end\n");
 		break;
@@ -212,82 +228,104 @@ int set_config_on_route(unsigned int route) {
 	return status;
 }
 #else 
-int set_config_on_route(unsigned int route){ return 0;}
+static int set_config_on_route(unsigned int route){ return 0;}
 #endif
-int set_config_on_status(unsigned int route) {
+int set_config_status_route(unsigned int route) {
 	
 	FILE *file = NULL;
+	
+	set_config_on_route(route);
+	
 	switch (route) {
 	case SPEAKER_NORMAL_ROUTE:
-
-	case SPEAKER_INCALL_ROUTE:
-
-	case SPEAKER_RINGTONE_ROUTE:
-
-	case SPEAKER_VOIP_ROUTE:
 	case EARPIECE_NORMAL_ROUTE:
-
-	case EARPIECE_INCALL_ROUTE:
-
-	case EARPIECE_RINGTONE_ROUTE:
-
-	case EARPIECE_VOIP_ROUTE:
+	case SPEAKER_HEADPHONE_NORMAL_ROUTE:
 		hp_status = 0;
 		spk_status = 1;
 		break;
 	case HEADSET_NORMAL_ROUTE:
-
-	case HEADSET_INCALL_ROUTE:
-
-	case HEADSET_RINGTONE_ROUTE:
-
-	case HEADSET_VOIP_ROUTE:
-
 	case HEADPHONE_NORMAL_ROUTE:
-
-	case HEADPHONE_INCALL_ROUTE:
-
-	case HEADPHONE_RINGTONE_ROUTE:
-	case HEADPHONE_VOIP_ROUTE:
 		hp_status = 1;
 		spk_status = 0;
 		break;
-	case SPEAKER_HEADPHONE_NORMAL_ROUTE:
-
+	case SPEAKER_INCALL_ROUTE:
+	case EARPIECE_INCALL_ROUTE:
+		mic_status = 0;
+		hp_status = 0;
+		spk_status = 1;
+		break;
+	case HEADSET_INCALL_ROUTE:
+	case HEADPHONE_INCALL_ROUTE:
+		mic_status = 1;
+		hp_status = 1;
+		spk_status = 0;
+		break;
+	case SPEAKER_RINGTONE_ROUTE:
+	case HEADSET_RINGTONE_ROUTE:
+	case EARPIECE_RINGTONE_ROUTE:
+	case HEADPHONE_RINGTONE_ROUTE:
 	case SPEAKER_HEADPHONE_RINGTONE_ROUTE:	
 		hp_status = 1;
 		spk_status = 1;
 		break;
-	case BLUETOOTH_NORMAL_ROUTE:
-
-	case BLUETOOTH_INCALL_ROUTE:
-
-	case BLUETOOTH_VOIP_ROUTE:
-
-	case MAIN_MIC_CAPTURE_ROUTE:
-
-	case HANDS_FREE_MIC_CAPTURE_ROUTE:
-
+	case SPEAKER_VOIP_ROUTE:
+	case EARPIECE_VOIP_ROUTE:
+		mic_status = 0;
+		hp_status = 0;
+		spk_status = 1;
+		break;
+	case HEADSET_VOIP_ROUTE:
+	case HEADPHONE_VOIP_ROUTE:
+		mic_status = 1;
+		hp_status = 1;
+		spk_status = 0;
+		break;
 	case BLUETOOTH_SOC_MIC_CAPTURE_ROUTE:
-
+	case BLUETOOTH_NORMAL_ROUTE:
+	case BLUETOOTH_INCALL_ROUTE:
+	case BLUETOOTH_VOIP_ROUTE:
+		break;
+	case MAIN_MIC_CAPTURE_ROUTE:
+		mic_status = 0;
+		hp_status = 0;
+		spk_status = 1;
+		break;
+	case HANDS_FREE_MIC_CAPTURE_ROUTE:
+		mic_status = 1;
+		hp_status = 1;
+		spk_status = 0;
+		break;
 	case PLAYBACK_OFF_ROUTE:
-
+		spk_status = 0;
+		break;
 	case CAPTURE_OFF_ROUTE:
-
+		break;
 	case INCALL_OFF_ROUTE:
-
+		break;
 	case VOIP_OFF_ROUTE:
-
+		break;
 	case HDMI_NORMAL_ROUTE:
 
 	case USB_NORMAL_ROUTE:
 
 	case USB_CAPTURE_ROUTE:
 		break;
+		
 	default:
 		ALOGE("get_route_config() Error route %d", route);
 		return 0;
 	}
+	
+	if((hp_status != hp_status_old && hp_status)
+		|| (spk_status != spk_status_old && spk_status)
+		|| (mic_status != mic_status_old)) {
+		msleep(300);
+	}
+/*	if((hp_status != hp_status_old)
+		|| (spk_status != spk_status_old)
+		|| (mic_status != mic_status_old)) {
+		msleep(300);
+	}*/
 /*****************************************************/	
 	if(hp_status != hp_status_old) {
 		/******close headset*******/
@@ -307,6 +345,16 @@ int set_config_on_status(unsigned int route) {
 			fwrite(w_value, sizeof(char), 1, file);
 			fclose(file);
 			spk_status_old = spk_status;
+		}
+	}
+	if(mic_status != mic_status_old) {
+		/******open mic*******/
+		file = fopen(MAIN_MIC_CONTROL_NAME, "r+");
+		if(file != NULL) {
+			sprintf(w_value, "%d", mic_status);
+			fwrite(w_value, sizeof(char), 1, file);
+			fclose(file);
+			mic_status_old = mic_status;
 		}
 	}
 /*****************************************************/		

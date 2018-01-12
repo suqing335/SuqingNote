@@ -374,10 +374,10 @@ int route_set_controls(unsigned route)
         return -EINVAL;
     }
 
-    //if (route_info->controls_count > 0)
-    //    set_controls(mMixer, route_info->controls, route_info->controls_count);
-
-	set_config_on_route(route);
+    if (route_info->controls_count > 0) {
+        //set_controls(mMixer, route_info->controls, route_info->controls_count);
+	set_config_status_route(route);
+    }
 
     return 0;
 }
@@ -423,7 +423,7 @@ struct pcm *route_pcm_open(unsigned route, unsigned int flags)
         ALOGE("route_pcm_open() Can not get config of route");
         return NULL;
     }
-	set_config_on_status(route);
+
     ALOGD("route_info->sound_card %d, route_info->devices 0 %s %s",
         route_info->sound_card,
         (route_info->devices == DEVICES_0_1 || route_info->devices == DEVICES_0_2 ||
