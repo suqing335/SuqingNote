@@ -1,4 +1,4 @@
-在2.2,2.3版本上重写下面方法就能重写home键
+###在2.2,2.3版本上重写下面方法就能重写home键
     public void onAttachedToWindow() {
         this.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD);
         super.onAttachedToWindow();

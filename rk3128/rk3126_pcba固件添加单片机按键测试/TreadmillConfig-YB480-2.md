@@ -1,118 +1,118 @@
-// ´´½¨ÈË£ºÕÅ¹ú»ª
-// ´´½¨ÈÕÆÚ£º2016-7-12
-//¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
-// ¸üĞÂ»úĞÍËµÃ÷£º
-// 1 ÔÚUÅÌÖĞ´´½¨¡°TreadmillConfigNoTouchNoWifi¡±ÎÄ¼ş¼Ğ¡£ÎÄ¼ş¼ĞÃû³ÆÇø·Ö´óĞ¡Ğ´¡£
-// 2 ½«ÌØ¶¨»úĞÍµÄÅäÖÃÎÄ¼ş·Åµ½Õâ¸öÎÄ¼ş¼ĞÏÂ¡£
-// 3 ½«UÅÌ²åÈëµç×Ó±íÖĞ¡£
-// 4 °Îµô°²È«¿ª¹Ø¡£
-// 5 ¸øÏµÍ³ÉÏµç¡£
-// 6 ÏµÍ³×Ô¶¯¸üĞÂÅäÖÃÎÄ¼ş¡£
-// 7 ÏµÍ³ÌáÊ¾¡°Êı¾İ´«ËÍÍê³É¡±ºó£¬·ÅÉÏ°²È«¿ª¹Ø¡£¸üĞÂÍê³É¡£
-// 8 ÔÚÅäÖÃ½çÃæ£¬¿ÉÍ¨¹ıËÙ¶È£«¡¢ËÙ¶È£­¼ü£¬²é¿´ÅäÖÃÏêÇé
-// ×¢Òâ£º
-//	1 ÔÚÏµÍ³¸üĞÂÅäÖÃÎÄ¼şµÄ¹ı³ÌÖĞ£¬ÇĞÎğ½øĞĞÈÎºÎ²Ù×÷¡£
-// 	2 UÅÌÕı³£Ê¹ÓÃÊ±£¬ÒªÉ¾³ı¡°TreadmillConfigNoTouchNoWifi¡±ÎÄ¼ş¼Ğ
-//	3 ¡°TreadmillConfigNoTouchNoWifi¡±ÎÄ¼şÏÂ£¬Ö»ÄÜÓĞÒ»¸ö¡°TreadmillConfig-xxxx.txt¡±ÎÄ¼ş¡£
-//¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
-// ÅäÖÃÎÄ¼şËµÃ÷
-// 1 ÎÄ¼şÃûµÄÇ°°ë²¿·Ö¡°TreadmillConfig¡±²»ÄÜ¸ÄĞ´£¬ºó°ë²¿·Ö¸ù¾İ¾ßÌå»úĞÍÃüÃû¡£
-// 2 ¡°//¡°±êÊ¾±¾ĞĞ²»Æğ×÷ÓÃ
-// 3 ËùÓĞÓ¢ÎÄ×Ö¶Î²»ÄÜ±»¸ÄĞ´£¨»úĞÍĞĞ³ıÍâ£©¡£
-// 4 ÌîĞ´Ê±È·ÈÏÊäÈë·¨´¦ÓÚÓ¢ÎÄ×´Ì¬¡£
-// 5 ¿ÉÒÔÊäÈë¿Õ¸ñ
-// 6 ¶ÔÓÚlogo¡¢uiÑ¡Ïî£¬Ö»ÄÜÑ¡ÔñÒ»¸ö,¶ÔÆäËüÏîÓÃ¡°//¡°ÆÁ±Î
-// 7 ¿ÉÒÔÓĞ¿ÕĞĞ¡£
-// 8 Ã¿ĞĞÒÔ»Ø³µĞĞ½áÊø¡£
-// 9 unit -> 0 ±íÊ¾¹«ÖÆ  0xa5 ±íÊ¾Ó¢ÖÆ
-// 10 incline_reset -> 0 ±íÊ¾Í£»úÊ±¸´Î» ->0x69±íÊ¾Í£»úÊ±²»¸´Î»
-// 11 ²»ÒªÊäÈëÖĞÎÄ
-
-type  : YB480-2
-apk_version : 2016-07-28
-dzb_version : 2016-07-28
-ble_customer_id : 8
-ble_model_id : 480
-//logo  : mydo
-//logo:zhongyang
-//logo:monark
-logo:orient
-//ui : mydo
-ui:zhongyang
-
-min_speed  : 10
-max_display_speed : 160
-max_real_speed : 150
-max_incline : 15
-unit : 0
-//unit : 0xa5
-//incline_reset : 0
-incline_reset : 0x69
-
-
-start_key : 28
-stop_key : 35
-program_key : 14
-mode_key : 38
-speed_add_key : 33
-speed_sub_key : 34
-incline_add_key : 26
-incline_sub_key : 27
-hand_speed_add: 37
-hand_speed_sub: 36
-hand_incline_add : 29
-hand_incline_sub : 30
-
-home_key : 0
-return_key : 0
-mute_key : 0
-play_pause_key : 10
-pre_song_key : 9
-next_song_key : 11
-volume_sub_key : 0
-volume_add_key : 0
-quick_key : 0
-slow_key : 0
-switch_key : 13
-
-fan_key : 12
-
-speed_1_key : 30,19
-speed_2_key : 60,18
-speed_3_key : 90,17
-
-incline_1_key : 3,22
-incline_2_key : 6,21
-incline_3_key : 9,20
-
-
-driver : DC
-//driver : AC
-
-/////////////////////////////////////////Ö±Á÷Çı¶¯Æ÷
-option : 0x76
-// b7: 0-x 1-¼Æ²½ 1-ERP 1-220V 1-µ¹ÖÃ 1-ÎŞ¸Ğ 1-ADÑïÉı 1-¹â¸Ğ
-overcurrent_dc : 20
-force : 100
-
-/////////////Ö±Á÷ÎŞ¸Ğ
-pwml : 140
-pwmm : 130
-pwmh : 170
-overload : 10
-
-/////////////Ö±Á÷ÓĞ¸Ğ
-proption_dc : 0x6b5b
-pwms : 50
-
-steps_s0 : 2
-steps_s1 : 10
-
-/////////////////////////////////////////½»Á÷±äÆµÆ÷
-motor_res : 450
-rated_voltage : 220
-rated_freq : 5000
-overcurrent_ac : 13
-acc_time : 25
-proption_ac : 0x2512
-pole_ac : 4
+	// åˆ›å»ºäººï¼šå¼ å›½å
+	// åˆ›å»ºæ—¥æœŸï¼š2016-7-12
+	//â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+	// æ›´æ–°æœºå‹è¯´æ˜ï¼š
+	// 1 åœ¨Uç›˜ä¸­åˆ›å»ºâ€œTreadmillConfigNoTouchNoWifiâ€æ–‡ä»¶å¤¹ã€‚æ–‡ä»¶å¤¹åç§°åŒºåˆ†å¤§å°å†™ã€‚
+	// 2 å°†ç‰¹å®šæœºå‹çš„é…ç½®æ–‡ä»¶æ”¾åˆ°è¿™ä¸ªæ–‡ä»¶å¤¹ä¸‹ã€‚
+	// 3 å°†Uç›˜æ’å…¥ç”µå­è¡¨ä¸­ã€‚
+	// 4 æ‹”æ‰å®‰å…¨å¼€å…³ã€‚
+	// 5 ç»™ç³»ç»Ÿä¸Šç”µã€‚
+	// 6 ç³»ç»Ÿè‡ªåŠ¨æ›´æ–°é…ç½®æ–‡ä»¶ã€‚
+	// 7 ç³»ç»Ÿæç¤ºâ€œæ•°æ®ä¼ é€å®Œæˆâ€åï¼Œæ”¾ä¸Šå®‰å…¨å¼€å…³ã€‚æ›´æ–°å®Œæˆã€‚
+	// 8 åœ¨é…ç½®ç•Œé¢ï¼Œå¯é€šè¿‡é€Ÿåº¦ï¼‹ã€é€Ÿåº¦ï¼é”®ï¼ŒæŸ¥çœ‹é…ç½®è¯¦æƒ…
+	// æ³¨æ„ï¼š
+	//	1 åœ¨ç³»ç»Ÿæ›´æ–°é…ç½®æ–‡ä»¶çš„è¿‡ç¨‹ä¸­ï¼Œåˆ‡å‹¿è¿›è¡Œä»»ä½•æ“ä½œã€‚
+	// 	2 Uç›˜æ­£å¸¸ä½¿ç”¨æ—¶ï¼Œè¦åˆ é™¤â€œTreadmillConfigNoTouchNoWifiâ€æ–‡ä»¶å¤¹
+	//	3 â€œTreadmillConfigNoTouchNoWifiâ€æ–‡ä»¶ä¸‹ï¼Œåªèƒ½æœ‰ä¸€ä¸ªâ€œTreadmillConfig-xxxx.txtâ€æ–‡ä»¶ã€‚
+	//â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+	// é…ç½®æ–‡ä»¶è¯´æ˜
+	// 1 æ–‡ä»¶åçš„å‰åŠéƒ¨åˆ†â€œTreadmillConfigâ€ä¸èƒ½æ”¹å†™ï¼ŒååŠéƒ¨åˆ†æ ¹æ®å…·ä½“æœºå‹å‘½åã€‚
+	// 2 â€œ//â€œæ ‡ç¤ºæœ¬è¡Œä¸èµ·ä½œç”¨
+	// 3 æ‰€æœ‰è‹±æ–‡å­—æ®µä¸èƒ½è¢«æ”¹å†™ï¼ˆæœºå‹è¡Œé™¤å¤–ï¼‰ã€‚
+	// 4 å¡«å†™æ—¶ç¡®è®¤è¾“å…¥æ³•å¤„äºè‹±æ–‡çŠ¶æ€ã€‚
+	// 5 å¯ä»¥è¾“å…¥ç©ºæ ¼
+	// 6 å¯¹äºlogoã€uié€‰é¡¹ï¼Œåªèƒ½é€‰æ‹©ä¸€ä¸ª,å¯¹å…¶å®ƒé¡¹ç”¨â€œ//â€œå±è”½
+	// 7 å¯ä»¥æœ‰ç©ºè¡Œã€‚
+	// 8 æ¯è¡Œä»¥å›è½¦è¡Œç»“æŸã€‚
+	// 9 unit -> 0 è¡¨ç¤ºå…¬åˆ¶  0xa5 è¡¨ç¤ºè‹±åˆ¶
+	// 10 incline_reset -> 0 è¡¨ç¤ºåœæœºæ—¶å¤ä½ ->0x69è¡¨ç¤ºåœæœºæ—¶ä¸å¤ä½
+	// 11 ä¸è¦è¾“å…¥ä¸­æ–‡
+	
+	type  : YB480-2
+	apk_version : 2016-07-28
+	dzb_version : 2016-07-28
+	ble_customer_id : 8
+	ble_model_id : 480
+	//logo  : mydo
+	//logo:zhongyang
+	//logo:monark
+	logo:orient
+	//ui : mydo
+	ui:zhongyang
+	
+	min_speed  : 10
+	max_display_speed : 160
+	max_real_speed : 150
+	max_incline : 15
+	unit : 0
+	//unit : 0xa5
+	//incline_reset : 0
+	incline_reset : 0x69
+	
+	
+	start_key : 28
+	stop_key : 35
+	program_key : 14
+	mode_key : 38
+	speed_add_key : 33
+	speed_sub_key : 34
+	incline_add_key : 26
+	incline_sub_key : 27
+	hand_speed_add: 37
+	hand_speed_sub: 36
+	hand_incline_add : 29
+	hand_incline_sub : 30
+	
+	home_key : 0
+	return_key : 0
+	mute_key : 0
+	play_pause_key : 10
+	pre_song_key : 9
+	next_song_key : 11
+	volume_sub_key : 0
+	volume_add_key : 0
+	quick_key : 0
+	slow_key : 0
+	switch_key : 13
+	
+	fan_key : 12
+	
+	speed_1_key : 30,19
+	speed_2_key : 60,18
+	speed_3_key : 90,17
+	
+	incline_1_key : 3,22
+	incline_2_key : 6,21
+	incline_3_key : 9,20
+	
+	
+	driver : DC
+	//driver : AC
+	
+	/////////////////////////////////////////ç›´æµé©±åŠ¨å™¨
+	option : 0x76
+	// b7: 0-x 1-è®¡æ­¥ 1-ERP 1-220V 1-å€’ç½® 1-æ— æ„Ÿ 1-ADæ‰¬å‡ 1-å…‰æ„Ÿ
+	overcurrent_dc : 20
+	force : 100
+	
+	/////////////ç›´æµæ— æ„Ÿ
+	pwml : 140
+	pwmm : 130
+	pwmh : 170
+	overload : 10
+	
+	/////////////ç›´æµæœ‰æ„Ÿ
+	proption_dc : 0x6b5b
+	pwms : 50
+	
+	steps_s0 : 2
+	steps_s1 : 10
+	
+	/////////////////////////////////////////äº¤æµå˜é¢‘å™¨
+	motor_res : 450
+	rated_voltage : 220
+	rated_freq : 5000
+	overcurrent_ac : 13
+	acc_time : 25
+	proption_ac : 0x2512
+	pole_ac : 4

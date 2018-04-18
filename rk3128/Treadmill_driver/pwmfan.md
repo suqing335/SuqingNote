@@ -15,7 +15,7 @@
 
 pwms = <&pwm1 0 25000> 第一个值是对应的pwm1,第二个参数是通道，第三个是周期
 
-在dts中必须把pwm1打开
+###在dts中必须把pwm1打开
 
 	&pwm1 {
 	        status = "okay";
@@ -29,7 +29,7 @@ rk的默认框架是只有一个背光用pwm的 所以在pwm-rockchip.c  \#defin
 
 需要把 \#define NUM_PWM 定义成2以上
 
-获取pwm
+###获取pwm
 
 	static int misc_pwm_chip_init(struct misc_custom_data *misc) {
 		int ret = 0;

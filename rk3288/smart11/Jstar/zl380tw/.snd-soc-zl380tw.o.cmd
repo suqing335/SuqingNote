@@ -1,0 +1,1 @@
+cmd_drivers/misc/Jstar/zl380tw/snd-soc-zl380tw.o := ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-ld -EL    -r -o drivers/misc/Jstar/zl380tw/snd-soc-zl380tw.o drivers/misc/Jstar/zl380tw/zl380tw.o ; scripts/mod/modpost drivers/misc/Jstar/zl380tw/snd-soc-zl380tw.o

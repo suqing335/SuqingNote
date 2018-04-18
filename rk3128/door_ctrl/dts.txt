@@ -1,0 +1,13 @@
+&tve {
+	status = "okay";
+	test_mode = <0>;
+	call-gpio = <&gpio1 GPIO_B4 IRQ_TYPE_LEVEL_LOW>;
+	call-gpio1 = <&gpio1 GPIO_B0 IRQ_TYPE_LEVEL_LOW>;
+	met-gpio = <&gpio1 GPIO_B3 IRQ_TYPE_LEVEL_LOW>;
+	key-gpio = <&gpio0 GPIO_A2 GPIO_ACTIVE_LOW>;
+	spk_ctl_io = <&gpio1 GPIO_B2 GPIO_ACTIVE_HIGH>;
+	apk_ctl_io = <&gpio0 GPIO_D2 GPIO_ACTIVE_HIGH>;/* APK_CTL == GPIO0_D6 */
+	led_ctl_io = <&gpio3 GPIO_B3 GPIO_ACTIVE_LOW>;
+	lock_ctl_io = <&gpio3 GPIO_C4 GPIO_ACTIVE_LOW>;
+	lock_en_io = <&gpio2 GPIO_D5 GPIO_ACTIVE_LOW>;
+};

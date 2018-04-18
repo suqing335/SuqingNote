@@ -1,0 +1,1 @@
+cmd_drivers/misc/Jstar/keyboard/built-in.o :=  ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-ld -EL    -r -o drivers/misc/Jstar/keyboard/built-in.o drivers/misc/Jstar/keyboard/soc-sn7326.o ; scripts/mod/modpost drivers/misc/Jstar/keyboard/built-in.o

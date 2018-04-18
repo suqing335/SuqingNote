@@ -23,13 +23,13 @@ hardware层st文件夹内一个转换的函数需要修改
 
 
 ####kernel
-1.注册输入子系统，并将名字设为"temperature",input->name = "temperature".
+#####1.注册输入子系统，并将名字设为"temperature",input->name = "temperature".
 
 	input->name ="temperature";/**这个名字必须和hardware temperature层对应，不然找不到数据*/
 	set_bit(EV_ABS, input->evbit);		
 	input_set_abs_params(input, ABS_THROTTLE, 100, 65535, 0, 0);/**上报温度*/
 
-2.把设备注册到杂设备类中.
+#####2.把设备注册到杂设备类中.
 
 	static int heart_misc_device_register(struct misc_heart *heart) {
 		int result;
@@ -52,13 +52,13 @@ hardware层st文件夹内一个转换的函数需要修改
 		return result;
 	}
 
-miscdev.name = "temperature";这个就是设备文件的名字，/dev/temperature;这个名字也不能改，在hardware层要找这个名字打开设备。
+	miscdev.name = "temperature";这个就是设备文件的名字，/dev/temperature;这个名字也不能改，在hardware层要找这个名字打开设备。
 
-hardware层ioctl的控制模式
+#####hardware层ioctl的控制模式
 
 	TEMPERATURE_IOCTL_GET_ENABLED
 	TEMPERATURE_IOCTL_ENABLE
-ioctl原型
+#####ioctl原型
 	
 	static long heart_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 		struct misc_heart *heart = pheart;

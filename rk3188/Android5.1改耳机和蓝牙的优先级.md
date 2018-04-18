@@ -1,4 +1,4 @@
-在frameworks\base\media\java\android\media\AudioService.java
+####在frameworks\base\media\java\android\media\AudioService.java
     private void onSetWiredDeviceConnectionState(int device, int state, String name)
     {
         synchronized (mConnectedDevices) {

@@ -4,7 +4,7 @@
 
 ##kernel层
 rockchip_custom.c, 安全开关和pwm风扇的控制在一个文件里面
-创建输入设备
+####创建输入设备
 
 	static int misc_input_device_register(struct misc_custom_data *misc) {
 		int ret;            
@@ -43,7 +43,7 @@ rockchip_custom.c, 安全开关和pwm风扇的控制在一个文件里面
 	        return ret;
 	}
 
-注册杂设备
+####注册杂设备
 
 	static int misc_device_register(struct misc_custom_data *misc) {
 		int ret;

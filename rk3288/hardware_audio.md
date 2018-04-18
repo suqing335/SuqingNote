@@ -22,11 +22,11 @@ rk3288默认使用tinyalsa_hal,这个库不带通话功能，要使用legacy_hal
 
 ##软件设计思路是
 上层切换不同的route 在hardware层把相应的配置写入dsp内
-烧入dsp flash内的配置保存一份在base_config_array数组中，使上层有一份dsp arm的寄存器数据，这样写入其他配置时比较这个数组，不同的值写到dsp内，并保存在base_config_array中。（这样就要求每次重启，dsp必须复位,重新加载flash内的配置）
+烧入dsp flash内的配置保存一份在base_config_array数组中，使上层有一份dsp RAM的寄存器数据，这样写入其他配置时比较这个数组，不同的值写到dsp内，并保存在base_config_array中。（这样就要求每次重启，dsp必须复位,重新加载flash内的配置）
 
 并使用了一个当前指针，和一个old指针，实现了和codec一样的逻辑.以后只需要在不同route中加载不同的配置，加入不同的配置头文件就可以了。
 
-因为有了base_config_array做一个dsp arm 映射一样，所以上层写数组很快就结束了。
+因为有了base_config_array做一个dsp RAM 映射一样，所以上层写数组很快就结束了。
 
 具体的可以看源码和补丁。
 
