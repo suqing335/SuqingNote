@@ -1,0 +1,143 @@
+diff --git a/arch/arm/boot/dts/rk3128-86v.dts b/arch/arm/boot/dts/rk3128-86v.dts
+index 31f7cbd..059d0b1 100755
+--- a/arch/arm/boot/dts/rk3128-86v.dts
++++ b/arch/arm/boot/dts/rk3128-86v.dts
+@@ -4,6 +4,7 @@
+ #include "rk3128-cif-sensor.dtsi"
+ #include "rk312x-sdk.dtsi"
+ #include "lcd-rk3128-86v-LVDS1024x600.dtsi"
++#include <dt-bindings/input/input.h>
+ 
+ / {
+ 	compatible = "rockchip,rk3128";
+@@ -185,6 +186,30 @@
+ 			gpio-key,wakeup;
+ 		};
+ 	*/
++		misc-key{
++			//rockchip,usercode = <0x1dcc>;
++			linux,code = <149>;
++			rockchip,key_table =
++				<0xfd KEY_PHONE>,
++				<0xf1 KEY_ENTER>,
++				<0xf8 KEY_UP>,
++				<0xbb KEY_DOWN>,
++				<0xef KEY_LEFT>,
++				<0xed KEY_RIGHT>,
++				<0xf1 KEY_NUMERIC_STAR>,
++				<0xf5 KEY_NUMERIC_POUND>,
++				<0xbe KEY_1>,
++				<0xba KEY_2>,
++				<0xb2 KEY_3>,
++				<0xbd KEY_4>,
++				<0xf9 KEY_5>,
++				<0xb1 KEY_6>,
++				<0xfc KEY_7>,
++				<0xf8 KEY_8>,
++				<0xb0 KEY_9>,
++				<0xb6 KEY_0>,
++				<0xb5 KEY_BACKSPACE>;
++		};
+ 	};
+ };
+ 
+diff --git a/drivers/input/keyboard/rk_keys.c b/drivers/input/keyboard/rk_keys.c
+index 1071b54..b66b0df 100755
+--- a/drivers/input/keyboard/rk_keys.c
++++ b/drivers/input/keyboard/rk_keys.c
+@@ -53,6 +53,17 @@
+ #define ADC_SAMPLE_JIFFIES	(100 / (MSEC_PER_SEC / HZ))	/* 100ms */
+ #define WAKE_LOCK_JIFFIES	(1 * HZ)			/* 1s */
+ 
++struct misc_key_table {
++	int scancode;
++	int keycode;
++};
++
++struct misc_button {
++	int nbuttons;
++	struct misc_key_table key_table[20];
++};
++struct misc_button *misc_button = NULL;
++
+ enum rk_key_type {
+ 	TYPE_GPIO = 1,
+ 	TYPE_ADC
+@@ -245,15 +256,14 @@ static int rk_keys_parse_dt(struct rk_keys_drvdata *pdata,
+ 	struct device_node *child_node;
+ 	struct iio_channel *chan;
+ 	int ret, gpio, i = 0;
++	int len;
+ 	u32 code, adc_value, flags;
+-
+ 	chan = iio_channel_get(&pdev->dev, NULL);
+ 	if (IS_ERR(chan)) {
+ 		dev_info(&pdev->dev, "no io-channels defined\n");
+ 		chan = NULL;
+ 	}
+ 	pdata->chan = chan;
+-
+ 	for_each_child_of_node(node, child_node) {
+ 		if (of_property_read_u32(child_node, "linux,code", &code)) {
+ 			dev_err(&pdev->dev,
+@@ -261,6 +271,22 @@ static int rk_keys_parse_dt(struct rk_keys_drvdata *pdata,
+ 			ret = -EINVAL;
+ 			goto error_ret;
+ 		}
++		if (code == 149) {
++			of_get_property(child_node, "rockchip,key_table", &len);
++			len /= sizeof(u32);
++			printk("len=0x%x\n",len);
++			misc_button->nbuttons = len/2;
++			if(of_property_read_u32_array(child_node, "rockchip,key_table",
++				 (u32 *)misc_button->key_table, len)) {
++				dev_err(&pdev->dev, "Missing key_table property in the DTS.\n");
++				ret = -1;
++				return ret;
++			}
++			/*for (loop=0; loop<(len/2); loop++) {
++				printk("keyCode[%d]=%d\n", loop, misc_button->key_table[loop].keycode);
++			}*/
++			continue;
++		}
+ 		pdata->button[i].code = code;
+ 		pdata->button[i].desc =
+ 		    of_get_property(child_node, "label", NULL);
+@@ -305,7 +331,6 @@ static int rk_keys_parse_dt(struct rk_keys_drvdata *pdata,
+ 		}
+ 		i++;
+ 	}
+-
+ 	return 0;
+ 
+ error_ret:
+@@ -330,7 +355,8 @@ static int keys_probe(struct platform_device *pdev)
+ 			     GFP_KERNEL);
+ 
+ 	input = devm_input_allocate_device(dev);
+-	if (!ddata || !input) {
++	misc_button = kmalloc(sizeof(struct misc_button), GFP_KERNEL);//add by cfj
++	if (!ddata || !input || !misc_button) {
+ 		error = -ENOMEM;
+ 		return error;
+ 	}
+@@ -379,6 +405,10 @@ static int keys_probe(struct platform_device *pdev)
+ 		input_set_capability(input, EV_KEY, button->code);
+ 	}
+ 
++	for (i = 0; i < misc_button->nbuttons; i++) {
++		input_set_capability(input, EV_KEY, misc_button->key_table[i].keycode);
++	}
++	
+ 	wake_lock_init(&ddata->wake_lock, WAKE_LOCK_SUSPEND, input->name);
+ 	device_init_wakeup(dev, wakeup);
+ 
+@@ -438,7 +468,7 @@ static int keys_probe(struct platform_device *pdev)
+ 		schedule_delayed_work(&ddata->adc_poll_work,
+ 				      ADC_SAMPLE_JIFFIES);
+ 	}
+-
++	
+ 	return error;
+ 
+ fail1:
