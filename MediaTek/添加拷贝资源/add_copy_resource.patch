@@ -1,0 +1,303 @@
+diff --git a/frameworks/base/api/current.txt b/frameworks/base/api/current.txt
+index 5e2dca8..68b0901 100755
+--- a/frameworks/base/api/current.txt
++++ b/frameworks/base/api/current.txt
+@@ -25273,6 +25273,7 @@ package android.provider {
+     field public static final java.lang.String DEVELOPMENT_SETTINGS_ENABLED = "development_settings_enabled";
+     field public static final java.lang.String DEVICE_PROVISIONED = "device_provisioned";
+     field public static final java.lang.String ETHERNET_ON = "ethernet_on";
++    field public static final java.lang.String FIRST_BOOT_COPY_FILE = "first_boot_copy_file";
+     field public static final java.lang.String HTTP_PROXY = "http_proxy";
+     field public static final deprecated java.lang.String INSTALL_NON_MARKET_APPS = "install_non_market_apps";
+     field public static final java.lang.String MODE_RINGER = "mode_ringer";
+diff --git a/frameworks/base/api/system-current.txt b/frameworks/base/api/system-current.txt
+index 7c8ef2b..a6f4c9e 100755
+--- a/frameworks/base/api/system-current.txt
++++ b/frameworks/base/api/system-current.txt
+@@ -26865,6 +26865,7 @@ package android.provider {
+     field public static final java.lang.String DEVELOPMENT_SETTINGS_ENABLED = "development_settings_enabled";
+     field public static final java.lang.String DEVICE_PROVISIONED = "device_provisioned";
+     field public static final java.lang.String ETHERNET_ON = "ethernet_on";
++    field public static final java.lang.String FIRST_BOOT_COPY_FILE = "first_boot_copy_file";
+     field public static final java.lang.String HTTP_PROXY = "http_proxy";
+     field public static final deprecated java.lang.String INSTALL_NON_MARKET_APPS = "install_non_market_apps";
+     field public static final java.lang.String MODE_RINGER = "mode_ringer";
+diff --git a/frameworks/base/core/java/android/provider/Settings.java b/frameworks/base/core/java/android/provider/Settings.java
+index 14d09b6..c833c32 100755
+--- a/frameworks/base/core/java/android/provider/Settings.java
++++ b/frameworks/base/core/java/android/provider/Settings.java
+@@ -6072,7 +6072,11 @@ public final class Settings {
+      */
+     public static final class Global extends NameValueTable {
+         public static final String SYS_PROP_SETTING_VERSION = "sys.settings_global_version";
+-		public static final String ETHERNET_ON = "ethernet_on";  //add by tangh0531 
++		public static final String ETHERNET_ON = "ethernet_on";  //add by tangh0531
++	/**
++	 * add by sasin on first boot copy file to sdcard
++	 */
++	public static final String FIRST_BOOT_COPY_FILE = "first_boot_copy_file";
+         /**
+          * The content:// style URL for global secure settings items.  Not public.
+          */
+diff --git a/packages/providers/MediaProvider/AndroidManifest.xml b/packages/providers/MediaProvider/AndroidManifest.xml
+old mode 100644
+new mode 100755
+index c2d11ed..37e7bdd
+--- a/packages/providers/MediaProvider/AndroidManifest.xml
++++ b/packages/providers/MediaProvider/AndroidManifest.xml
+@@ -7,12 +7,14 @@
+     <uses-permission android:name="android.permission.ACCESS_MTK_MMHW" />    
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
++    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+     <uses-permission android:name="android.permission.WAKE_LOCK" />
+     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
+     <uses-permission android:name="android.permission.ACCESS_MTP" />
+     <uses-permission android:name="android.permission.MANAGE_USERS" />
+     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
++    
+     <!-- M: Google protect using am.getRunningAppProcesse get other process info in diff uid,
+     so we need add this permission to permit process.media, so that DrmHelper can use pid to
+     query out process name. -->
+@@ -113,6 +115,11 @@
+                 <category android:name="android.intent.category.DEFAULT" />
+             </intent-filter>
+         </activity>
++	<!--add by sasin-->
++	<service 
++		android:name="com.android.providers.media.CopyFileService" 
++		android:exported="true" >
++        </service>
+ 
+     </application>
+ </manifest>
+diff --git a/packages/providers/MediaProvider/src/com/android/providers/media/CopyFileService.java b/packages/providers/MediaProvider/src/com/android/providers/media/CopyFileService.java
+new file mode 100755
+index 0000000..bb9dbc2
+--- /dev/null
++++ b/packages/providers/MediaProvider/src/com/android/providers/media/CopyFileService.java
+@@ -0,0 +1,122 @@
++/*
++* Copyright (C) 2014 MediaTek Inc.
++* Modification based on code covered by the mentioned copyright
++* and/or permission notice(s).
++*/
++/* //device/content/providers/media/src/com/android/providers/media/CopyFileService.java
++**
++** Copyright 2007, The Android Open Source Project
++**
++** Licensed under the Apache License, Version 2.0 (the "License"); 
++** you may not use this file except in compliance with the License. 
++** You may obtain a copy of the License at 
++**
++**     http://www.apache.org/licenses/LICENSE-2.0 
++**
++** Unless required by applicable law or agreed to in writing, software 
++** distributed under the License is distributed on an "AS IS" BASIS, 
++** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
++** See the License for the specific language governing permissions and 
++** limitations under the License.
++*/
++package com.android.providers.media;
++
++import android.app.Service;
++import android.content.Context;
++import android.content.Intent;
++import android.os.IBinder;
++import android.provider.Settings;
++import android.content.SharedPreferences;
++import android.util.Log;
++
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++
++
++public class CopyFileService extends Service {
++	private static final String TAG = "CopyFileService";
++	private static final String FROMPATH="/system/media/mediaSasin/";
++	private static final String TOPATH="/sdcard/mediaSasin/";
++	private static final String FirstRunCompleted = MediaScannerReceiver.FirstRunCompleted;
++	
++	@Override
++	public IBinder onBind(Intent intent) {
++		return null;
++	}
++	@Override
++	public void onCreate() {	
++		Log.v(TAG, "start copy file");
++		try {
++			copyDir(FROMPATH, TOPATH);
++			Settings.Global.putString(getContentResolver(), 
++					Settings.Global.FIRST_BOOT_COPY_FILE, FirstRunCompleted);
++		} catch (IOException e) {
++			e.printStackTrace();
++			Log.e(TAG, "copy file faile!!!");
++		}
++		Log.v(TAG, "end copy file");
++	}
++
++	@Override
++	public int onStartCommand(Intent intent, int flags, int startId) {
++		return Service.START_NOT_STICKY;
++	}
++
++	@Override
++	public void onDestroy()
++	{
++		Log.d(TAG, "onDestroy");
++	}	
++	
++	public void copyFile(String oldPath, String newPath) throws IOException {
++		
++		File oldFile = new File(oldPath);
++		File file = new File(newPath);
++		FileInputStream in = new FileInputStream(oldFile);
++		FileOutputStream out = new FileOutputStream(file);;
++
++		byte[] buffer = new byte[4096];
++		int readByte = 0;
++		while((readByte = in.read(buffer)) != -1){
++			out.write(buffer, 0, readByte);
++		}
++		in.close();
++		out.close();
++	}
++
++	public void copyDir(String sourcePath, String newPath) throws IOException {
++		File fromfile = new File(sourcePath);
++		if(!fromfile.exists()) {
++			Log.e(TAG, "file "+fromfile+" is not exit");
++			return;
++		}
++		
++		File[] fromfiles = fromfile.listFiles();
++		
++		if(fromfiles == null) {
++			Log.e(TAG, "fromfiles is null "+fromfile+" the Directory not sub directory or file");
++			return;
++		}
++		
++		File targerfile = new File(newPath);
++		if (!targerfile.exists()) {
++			targerfile.mkdir();
++		}
++
++		for (File subfile : fromfiles) {
++			if (subfile.isDirectory()) {
++				Log.v(TAG, "copy Directory, from:"+subfile.getPath()+ "/"+"--> to:"+newPath + subfile.getName() + "/");
++				copyDir(subfile.getPath() + "/", newPath + subfile.getName() + "/");
++			} else if (subfile.isFile()) {
++				Log.v(TAG, "copy file, from:"+subfile.getPath()+"--> to:"+newPath + subfile.getName());
++				copyFile(subfile.getPath(), newPath + subfile.getName());
++			}
++
++		}
++	}	
++}
++
+diff --git a/packages/providers/MediaProvider/src/com/android/providers/media/MediaScannerReceiver.java b/packages/providers/MediaProvider/src/com/android/providers/media/MediaScannerReceiver.java
+old mode 100644
+new mode 100755
+index 0501f66..d3a1033
+--- a/packages/providers/MediaProvider/src/com/android/providers/media/MediaScannerReceiver.java
++++ b/packages/providers/MediaProvider/src/com/android/providers/media/MediaScannerReceiver.java
+@@ -38,6 +38,8 @@ import android.os.storage.StorageVolume;
+ import android.os.SystemProperties;
+ import android.os.UserHandle;
+ import android.provider.MediaStore;
++import android.content.SharedPreferences;
++import android.provider.Settings;
+ 
+ public class MediaScannerReceiver extends BroadcastReceiver
+ {
+@@ -55,12 +57,35 @@ public class MediaScannerReceiver extends BroadcastReceiver
+     private static final String ACTION_SHUTDOWN_IPO = "android.intent.action.ACTION_SHUTDOWN_IPO";
+     static boolean sIsShutdown = !"def_value".equals(SystemProperties.get(
+             "sys.shutdown.requested", "def_value"));
+-
++	//add by sasin
++	public static final String FirstRunCompleted = "first_boot_completed";
+     @Override
+     public void onReceive(Context context, Intent intent) {
+         final String action = intent.getAction();
+         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+             MtkLog.v(TAG, "onReceive BOOT_COMPLETED, begin to scan internal and external storage.");
++	    
++		//add by sasin
++		//SharedPreferences sharedPreferences = context.getSharedPreferences("first_boot", Context.MODE_PRIVATE);
++		//boolean first_boot= sharedPreferences.getBoolean("first_boot", true);//如果是第一次开机，则sharedPreferences 的值为空，赋值true
++		//if (first_boot) {
++		//	MtkLog.v(TAG, "ACTION_BOOT_COMPLETED over startService CopyFileService");
++		//	Intent serviceIntent = new Intent(context, CopyFileService.class);
++		//	context.startService(serviceIntent);//启动拷贝文件的Services，由于文件比较大，onReceive方法里不能做耗时操作，可以用service解决			
++		//	SharedPreferences.Editor editor = sharedPreferences.edit();
++		//	editor.putBoolean("first_boot", false);//赋值false，表示下次开机不用再拷贝了
++		//	editor.commit();
++		//}
++		String mFirstRun = Settings.Global.getString(context.getContentResolver(), Settings.Global.FIRST_BOOT_COPY_FILE);
++		MtkLog.v(TAG, "mFirstRun:"+mFirstRun);
++		if(mFirstRun==null || !mFirstRun.equals(FirstRunCompleted)) {
++			MtkLog.v(TAG, "ACTION_BOOT_COMPLETED over startService CopyFileService");
++			Intent serviceIntent = new Intent(context, CopyFileService.class);
++			context.startService(serviceIntent);//启动拷贝文件的Services，由于文件比
++			//Settings.Global.putString(context.getContentResolver(), Settings.Global.FIRST_BOOT_COPY_FILE, FirstRunCompleted);
++		}
++		//end by sasin
++	    
+             // Scan both internal and external storage
+             scan(context, MediaProvider.INTERNAL_VOLUME);
+             /// M: only do scan external until all storages have been mounted or check time out.
+diff --git a/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/Android.mk b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/Android.mk
+new file mode 100755
+index 0000000..bcff503
+--- /dev/null
++++ b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/Android.mk
+@@ -0,0 +1,30 @@
++
++LOCAL_PATH:= $(call my-dir)
++
++#first method 
++
++#MY_IMAGE_LIST := $(wildcard $(LOCAL_PATH)/wallpaper/*.jpg)
++#MY_VIDEO_LIST := $(wildcard $(LOCAL_PATH)/video/*.mp4)
++#MY_MEDIA_LIST := $(MY_IMAGE_LIST) \
++#		 $(MY_VIDEO_LIST)
++
++####判断是否存在指定文件夹
++HAVE_SASIN_CUST_FILE := $(shell test -d $(TARGET_OUT)/media/mediaSasin/ && echo yes)
++####不存在就去创建
++ifneq ($(HAVE_SASIN_CUST_FILE),yes)
++$(shell mkdir -p $(TARGET_OUT)/media/mediaSasin/)
++endif
++####拷贝文件
++$(shell cp -rf $(LOCAL_PATH)/resource/ $(TARGET_OUT)/media/mediaSasin/)
++
++
++# second method
++
++#include $(CLEAR_VARS)
++#LOCAL_MODULE := Tesla_01
++#LOCAL_SRC_FILES := wallpaper/$(LOCAL_MODULE).jpg
++#LOCAL_MODULE_CLASS := ETC
++#LOCAL_MODULE_SUFFIX := .jpg
++#LOCAL_MODULE_PATH := $(TARGET_OUT_DATA)/media/0/Wallpapers
++#$(info ===========$(LOCAL_SRC_FILES)===============)
++#include $(BUILD_PREBUILT)
+\ No newline at end of file
+diff --git a/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Audio/G.E.M.mp3 b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Audio/G.E.M.mp3
+new file mode 100755
+index 0000000..8f1d9cf
+Binary files /dev/null and b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Audio/G.E.M.mp3 differ
+diff --git a/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.ffmpeg.1920x1080.mp4.libx264_10000kbps_30fps.libfaac_stereo_192kbps_48000Hz.mp4 b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.ffmpeg.1920x1080.mp4.libx264_10000kbps_30fps.libfaac_stereo_192kbps_48000Hz.mp4
+new file mode 100755
+index 0000000..96a19ff
+Binary files /dev/null and b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.ffmpeg.1920x1080.mp4.libx264_10000kbps_30fps.libfaac_stereo_192kbps_48000Hz.mp4 differ
+diff --git a/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.fmpeg.1920x1080.mp4.libx265_6500kbps_30fps.libfaac_stereo_128kbps_48000hz.mp4 b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.fmpeg.1920x1080.mp4.libx265_6500kbps_30fps.libfaac_stereo_128kbps_48000hz.mp4
+new file mode 100755
+index 0000000..c1595e1
+Binary files /dev/null and b/vendor/mediatek/proprietary/custom/sasin_S09/apps/MediaFile/resource/Video/bbb_short.fmpeg.1920x1080.mp4.libx265_6500kbps_30fps.libfaac_stereo_128kbps_48000hz.mp4 differ

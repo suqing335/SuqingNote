@@ -1,0 +1,1 @@
+	zip -0 bootanimation.zip desc.txt  part0/ part1/ -r
